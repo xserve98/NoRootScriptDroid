@@ -17,7 +17,11 @@ module.exports = function(__runtime__, scope){
     }
 
     engines.myEngine = function(){
-        return scope.__engine__;
+        return rtEngines.myEngine();
+    }
+
+    engines.all = function(){
+        return rtEngines.all();
     }
 
     engines.stopAll = rtEngines.stopAll.bind(rtEngines);
@@ -26,11 +30,14 @@ module.exports = function(__runtime__, scope){
     function fillConfig(c){
         var config = new com.stardust.autojs.execution.ExecutionConfig();
         c = c || {};
+        c.path = c.path || files.cwd();
         if(c.path){
-            if(typeof(c.path) == "string"){
-                config.path([c.path]);
+            if(Array.isArray(c.path)){
+                config.requirePath(c.path);
+                config.executePath(c.path[0]);
             }else{
-                config.path(c.path);
+                config.requirePath([c.path]);
+                config.executePath(c.path);
             }
         }
         c.delay = c.delay || 0;

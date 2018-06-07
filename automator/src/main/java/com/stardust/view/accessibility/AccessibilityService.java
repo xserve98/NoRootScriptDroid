@@ -1,8 +1,6 @@
 package com.stardust.view.accessibility;
 
-import android.content.Context;
 import android.os.Build;
-import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -13,10 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +35,7 @@ public class AccessibilityService extends android.accessibilityservice.Accessibi
     private static boolean containsAllEventTypes = false;
     private static final Set<Integer> eventTypes = new HashSet<>();
     private OnKeyListener.Observer mOnKeyObserver = new OnKeyListener.Observer();
+    private KeyInterceptor.Observer mKeyInterrupterObserver = new KeyInterceptor.Observer();
     private ExecutorService mKeyEventExecutor;
     private AccessibilityNodeInfo mFastRootInActiveWindow;
 
@@ -58,23 +54,28 @@ public class AccessibilityService extends android.accessibilityservice.Accessibi
 
     @Override
     public void onAccessibilityEvent(final AccessibilityEvent event) {
+        instance = this;
         Log.v(TAG, "onAccessibilityEvent: " + event);
         if (!containsAllEventTypes && !eventTypes.contains(event.getEventType()))
             return;
         int type = event.getEventType();
-        if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || type == AccessibilityEvent.TYPE_VIEW_HOVER_ENTER
-                || type == AccessibilityEvent.TYPE_VIEW_HOVER_EXIT) {
-            mFastRootInActiveWindow = super.getRootInActiveWindow();
+        if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+                type == AccessibilityEvent.TYPE_VIEW_FOCUSED) {
+            AccessibilityNodeInfo root = super.getRootInActiveWindow();
+            if (root != null) {
+                mFastRootInActiveWindow = root;
+            }
         }
+
         for (Map.Entry<Integer, AccessibilityDelegate> entry : mDelegates.entrySet()) {
             AccessibilityDelegate delegate = entry.getValue();
             Set<Integer> types = delegate.getEventTypes();
             if (types != null && !delegate.getEventTypes().contains(event.getEventType()))
                 continue;
-            long start = System.currentTimeMillis();
+            //long start = System.currentTimeMillis();
             if (delegate.onAccessibilityEvent(AccessibilityService.this, event))
                 break;
-            Log.v(TAG, "millis: " + (System.currentTimeMillis() - start) + " delegate: " + entry.getValue().getClass().getName());
+            //Log.v(TAG, "millis: " + (System.currentTimeMillis() - start) + " delegate: " + entry.getValue().getClass().getName());
         }
     }
 
@@ -89,14 +90,15 @@ public class AccessibilityService extends android.accessibilityservice.Accessibi
         if (mKeyEventExecutor == null) {
             mKeyEventExecutor = Executors.newSingleThreadExecutor();
         }
-        mKeyEventExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                stickOnKeyObserver.onKeyEvent(event.getKeyCode(), event);
-                mOnKeyObserver.onKeyEvent(event.getKeyCode(), event);
-            }
+        mKeyEventExecutor.execute(() -> {
+            stickOnKeyObserver.onKeyEvent(event.getKeyCode(), event);
+            mOnKeyObserver.onKeyEvent(event.getKeyCode(), event);
         });
-        return false;
+        return mKeyInterrupterObserver.onInterceptKeyEvent(event);
+    }
+
+    public KeyInterceptor.Observer getKeyInterrupterObserver() {
+        return mKeyInterrupterObserver;
     }
 
     public OnKeyListener.Observer getOnKeyObserver() {
@@ -151,6 +153,12 @@ public class AccessibilityService extends android.accessibilityservice.Accessibi
             return true;
         LOCK.lock();
         try {
+            if (instance != null)
+                return true;
+            if (timeOut == -1) {
+                ENABLED.await();
+                return true;
+            }
             return ENABLED.await(timeOut, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -163,5 +171,6 @@ public class AccessibilityService extends android.accessibilityservice.Accessibi
     public static OnKeyListener.Observer getStickOnKeyObserver() {
         return stickOnKeyObserver;
     }
+
 
 }

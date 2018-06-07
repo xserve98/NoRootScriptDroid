@@ -13,6 +13,7 @@ import android.webkit.MimeTypeMap;
 
 import com.stardust.autojs.annotation.ScriptInterface;
 import com.stardust.util.IntentUtil;
+import com.stardust.util.MimeTypes;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -47,7 +48,10 @@ public class AppUtils {
 
     @ScriptInterface
     public boolean launchApp(String appName) {
-        return launchPackage(getPackageName(appName));
+        String pkg = getPackageName(appName);
+        if (pkg == null)
+            return false;
+        return launchPackage(pkg);
     }
 
     @ScriptInterface
@@ -56,7 +60,7 @@ public class AppUtils {
         List<ApplicationInfo> installedApplications = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
         for (ApplicationInfo applicationInfo : installedApplications) {
             if (packageManager.getApplicationLabel(applicationInfo).toString().equals(appName)) {
-                return applicationInfo.processName;
+                return applicationInfo.packageName;
             }
         }
         return null;
@@ -96,8 +100,7 @@ public class AppUtils {
         if (path == null)
             throw new NullPointerException("path == null");
         path = "file://" + path;
-        String ext = getExtension(path);
-        String mimeType = TextUtils.isEmpty(ext) ? "*/*" : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        String mimeType = MimeTypes.fromFileOr(path, "*/*");
         mContext.startActivity(new Intent(Intent.ACTION_VIEW)
                 .setDataAndType(Uri.parse(path), mimeType)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -108,8 +111,7 @@ public class AppUtils {
         if (path == null)
             throw new NullPointerException("path == null");
         path = "file://" + path;
-        String ext = getExtension(path);
-        String mimeType = TextUtils.isEmpty(ext) ? "*/*" : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        String mimeType = MimeTypes.fromFileOr(path, "*/*");
         mContext.startActivity(new Intent(Intent.ACTION_EDIT)
                 .setDataAndType(Uri.parse(path), mimeType)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

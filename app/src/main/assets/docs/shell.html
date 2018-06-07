@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>shell函数 | Auto.js 2.0.16 文档</title>
+  <title>shell函数 | Auto.js 3.0.0 文档</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="assets/sh.css">
@@ -18,27 +18,37 @@
       </div>
       <ul>
 <li><a class="nav-documentation" href="documentation.html">关于本文档</a></li>
-<li><a class="nav-synopsis" href="synopsis.html">如何阅读本文档</a></li>
+<li><a class="nav-http-www-w3school-com-cn-js-pro_js_syntax-asp" href="http://www.w3school.com.cn/js/pro_js_syntax.asp">W3CSchool - ECMAScript教程</a></li>
+<li><a class="nav-http-es6-ruanyifeng-com-README" href="http://es6.ruanyifeng.com/#README">阮一峰 - ECMAScript 6教程</a></li>
 </ul>
 <div class="line"></div>
 
 <ul>
 <li><a class="nav-overview" href="overview.html">Overview - 综述</a></li>
 <li><a class="nav-qa" href="qa.html">Q&amp;A - 常见问题</a></li>
-<li><a class="nav-globals" href="globals.html">Globals - 一般全局函数</a></li>
-<li><a class="nav-widgets-based-automation" href="widgets-based-automation.html">WidgetsBasedAutomation - 基于控件的触摸模拟</a></li>
-<li><a class="nav-coordinates-based-automation" href="coordinates-based-automation.html">CoordinatesBasedAutomation - 基于坐标的触摸模拟</a></li>
-<li><a class="nav-images" href="images.html">Images - 图片与图色处理</a></li>
-<li><a class="nav-console" href="console.html">Console - 控制台</a></li>
-<li><a class="nav-events" href="events.html">Events - 事件与监听</a></li>
-<li><a class="nav-timers" href="timers.html">Timers - 定时器</a></li>
-<li><a class="nav-shell active" href="shell.html">Shell - Shell命令</a></li>
-<li><a class="nav-ui" href="ui.html">UI - 用户界面</a></li>
-<li><a class="nav-files" href="files.html">Files - 文件系统</a></li>
 <li><a class="nav-app" href="app.html">App - 应用</a></li>
+<li><a class="nav-console" href="console.html">Console - 控制台</a></li>
+<li><a class="nav-coordinates-based-automation" href="coordinates-based-automation.html">CoordinatesBasedAutomation - 基于坐标的操作</a></li>
+<li><a class="nav-device" href="device.html">Device - 设备</a></li>
+<li><a class="nav-dialogs" href="dialogs.html">Dialogs - 对话框</a></li>
 <li><a class="nav-engines" href="engines.html">Engines - 脚本引擎</a></li>
+<li><a class="nav-events" href="events.html">Events - 事件与监听</a></li>
+<li><a class="nav-floaty" href="floaty.html">Floaty - 悬浮窗</a></li>
+<li><a class="nav-files" href="files.html">Files - 文件系统</a></li>
+<li><a class="nav-globals" href="globals.html">Globals - 一般全局函数</a></li>
+<li><a class="nav-http" href="http.html">Http - HTTP</a></li>
+<li><a class="nav-images" href="images.html">Images - 图片与图色处理</a></li>
+<li><a class="nav-keys" href="keys.html">Keys - 按键模拟</a></li>
+<li><a class="nav-media" href="media.html">Media - 多媒体</a></li>
 <li><a class="nav-modules" href="modules.html">Modules - 模块</a></li>
-<li><a class="nav-work-with-java" href="work-with-java.html">Work with Java - 调用Java API</a></li>
+<li><a class="nav-widgets-based-automation" href="widgets-based-automation.html">WidgetsBasedAutomation - 基于控件的操作</a></li>
+<li><a class="nav-sensors" href="sensors.html">Sensors - 传感器</a></li>
+<li><a class="nav-shell active" href="shell.html">Shell - Shell命令</a></li>
+<li><a class="nav-storages" href="storages.html">Storages - 本地存储</a></li>
+<li><a class="nav-threads" href="threads.html">Threads - 多线程</a></li>
+<li><a class="nav-timers" href="timers.html">Timers - 定时器</a></li>
+<li><a class="nav-ui" href="ui.html">UI - 用户界面</a></li>
+<li><a class="nav-https-developer-mozilla-org-zh-CN-docs-Mozilla-Projects-Rhino-Scripting_Java" href="https://developer.mozilla.org/zh-CN/docs/Mozilla/Projects/Rhino/Scripting_Java">Work with Java - 调用Java API</a></li>
 </ul>
 <div class="line"></div>
 
@@ -51,7 +61,7 @@
 
     <div id="column1" data-id="shell" class="interior">
       <header>
-        <h1>Auto.js 2.0.16 文档</h1>
+        <h1>Auto.js 3.0.0 文档</h1>
         <div id="gtoc">
           <p>
             <a href="index.html" name="toc">索引</a> |
@@ -65,11 +75,11 @@
         <h2>目录</h2>
         <ul>
 <li><span class="stability_2"><a href="#shell_shell">shell函数</a></span><ul>
-<li><span class="stability_undefined"><a href="#shell_shell_cmd_root_false">shell(cmd[, root = false])</a></span></li>
+<li><span class="stability_undefined"><a href="#shell_shell_cmd_root">shell(cmd[, root])</a></span></li>
 </ul>
 </li>
 <li><span class="stability_2"><a href="#shell_shell_1">Shell</a></span><ul>
-<li><span class="stability_undefined"><a href="#shell_shell_root_false">Shell(root = false)</a></span></li>
+<li><span class="stability_undefined"><a href="#shell_new_shell_root">new Shell(root)</a></span></li>
 <li><span class="stability_undefined"><a href="#shell_shell_exec_cmd">Shell.exec(cmd)</a></span></li>
 <li><span class="stability_undefined"><a href="#shell_shell_exit">Shell.exit()</a></span></li>
 <li><span class="stability_undefined"><a href="#shell_shell_exitandwaitfor">Shell.exitAndWaitFor()</a></span></li>
@@ -145,16 +155,16 @@
 <li>通过内嵌终端模拟器执行(RootAutomator, Shell等对象)</li>
 </ul>
 <h1>shell函数<span><a class="mark" href="#shell_shell" id="shell_shell">#</a></span></h1>
-<div class="api_stability api_stability_2"><a href="documentation.html#documentation_stability_index">Stability: 2</a> - Stable</div><h2>shell(cmd[, root = false])<span><a class="mark" href="#shell_shell_cmd_root_false" id="shell_shell_cmd_root_false">#</a></span></h2>
+<div class="api_stability api_stability_2"><a href="documentation.html#documentation_stability_index">Stability: 2</a> - Stable</div><h2>shell(cmd[, root])<span><a class="mark" href="#shell_shell_cmd_root" id="shell_shell_cmd_root">#</a></span></h2>
 <div class="signature"><ul>
 <li>cmd <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> 要执行的命令</li>
 <li>root <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;Boolean&gt;</a> 是否以root权限运行，默认为false。</li>
 </ul>
-</div><p>返回运行一个对象表示命令的执行结果。其属性如下:</p>
+</div><p>一次性执行命令cmd, 并返回命令的执行结果。返回对象的其属性如下:</p>
 <ul>
 <li>code <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a> 返回码。执行成功时为0，失败时为非0的数字。</li>
 <li>result <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> 运行结果(stdout输出结果)</li>
-<li>error \<String\> 运行的错误信息(stderr输出结果)。例如执行需要root权限的命令但没有授予root权限会返回错误信息&quot;Permission denied&quot;。</li>
+<li>error <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> 运行的错误信息(stderr输出结果)。例如执行需要root权限的命令但没有授予root权限会返回错误信息&quot;Permission denied&quot;。</li>
 </ul>
 <p>示例(强制停止微信) ： </p>
 <pre><code>var result = shell(&quot;am force-stop com.tencent.mm&quot;, true);
@@ -167,12 +177,13 @@ if(result.code == 0){
 }
 </code></pre><h1>Shell<span><a class="mark" href="#shell_shell_1" id="shell_shell_1">#</a></span></h1>
 <div class="api_stability api_stability_2"><a href="documentation.html#documentation_stability_index">Stability: 2</a> - Stable</div><p>shell函数通过用来一次性执行单条命令并获取结果。如果有多条命令需要执行，用Shell对象的效率更高。这是因为，每次运行shell函数都会打开一个单独的shell进程并在运行结束后关闭他，这个过程需要一定的时间；而Shell对象自始至终使用同一个shell进程。</p>
-<h2>Shell(root = false)<span><a class="mark" href="#shell_shell_root_false" id="shell_shell_root_false">#</a></span></h2>
+<h2>new Shell(root)<span><a class="mark" href="#shell_new_shell_root" id="shell_new_shell_root">#</a></span></h2>
 <div class="signature"><ul>
-<li>root <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;Boolean&gt;</a> 是否以root权限运行一个shell进程。这将会影响其后使用该Shell对象执行的命令的权限</li>
+<li>root <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;Boolean&gt;</a> 是否以root权限运行一个shell进程，默认为false。这将会影响其后使用该Shell对象执行的命令的权限</li>
 </ul>
 </div><p>Shell对象的&quot;构造函数&quot;。</p>
 <pre><code>var sh = new Shell(true);
+//强制停止微信
 sh.exec(&quot;am force-stop com.tencent.mm&quot;);
 sh.exit();
 </code></pre><h2>Shell.exec(cmd)<span><a class="mark" href="#shell_shell_exec_cmd" id="shell_shell_exec_cmd">#</a></span></h2>
@@ -183,7 +194,7 @@ sh.exit();
 <p>注意，命令执行是&quot;异步&quot;的、非阻塞的。也就是不会等待命令完成后才继续向下执行。</p>
 <p>尽管这样的设计使用起来有很多不便之处，但受限于终端模拟器，暂时没有解决方式；如果后续能找到解决方案，则将提供<code>Shell.execAndWaitFor</code>函数。</p>
 <h2>Shell.exit()<span><a class="mark" href="#shell_shell_exit" id="shell_shell_exit">#</a></span></h2>
-<p>直接退出shell。这意味着正在执行的命令会被强制退出。</p>
+<p>直接退出shell。正在执行的命令会被强制退出。</p>
 <h2>Shell.exitAndWaitFor()<span><a class="mark" href="#shell_shell_exitandwaitfor" id="shell_shell_exitandwaitfor">#</a></span></h2>
 <p>执行&quot;exit&quot;命令并等待执行命令执行完成、退出shell。</p>
 <p>此函数会执行exit命令来正常退出shell。</p>
@@ -193,21 +204,24 @@ sh.exit();
 </ul>
 </div><p>设置该Shell的回调函数，以便监听Shell的输出。可以包括以下属性：</p>
 <ul>
-<li>onOutput <span class="type">&lt;function&gt;</span> 每当shell有新的输出时便会调用该函数。其参数是一个字符串。</li>
-<li>onNewLine <span class="type">&lt;function&gt;</span> 每当shell有新的一行输出时便会调用该函数。其参数是一个字符串(不包括最后的换行符)。</li>
+<li>onOutput <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a> 每当shell有新的输出时便会调用该函数。其参数是一个字符串。</li>
+<li>onNewLine <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a> 每当shell有新的一行输出时便会调用该函数。其参数是一个字符串(不包括最后的换行符)。</li>
 </ul>
 <p>例如:</p>
 <pre><code>var sh = new Shell();
 sh.setCallback({
     onNewLine: function(line){
+        //有新的一行输出时打印到控制台
         log(line);
     }
 })
 while(true){
+    //循环输入命令
     var cmd = dialogs.rawInput(&quot;请输入要执行的命令，输入exit退出&quot;);
     if(cmd == &quot;exit&quot;){
         break;
     }
+    //执行命令
     sh.exec(cmd);
 }
 sh.exit();
@@ -215,7 +229,7 @@ sh.exit();
 <p>以下关于shell命令的资料来自<a href="https://developer.android.com/studio/command-line/adb.html#shellcommands">AndroidStudio用户指南：Shell命令</a>。</p>
 <h2>am命令<span><a class="mark" href="#shell_am" id="shell_am">#</a></span></h2>
 <p>am命令即Activity Manager命令，用于管理应用程序活动、服务等。</p>
-<p><strong>以下命令均以&quot;am &quot;开头，例如&quot;shell(\&quot;am start -p com.tencent.mm\&quot;);&quot;(启动微信)</strong></p>
+<p><strong>以下命令均以&quot;am &quot;开头，例如<code>shell(&#39;am start -p com.tencent.mm&#39;);</code>(启动微信)</strong></p>
 <h3>start [options] intent<span><a class="mark" href="#shell_start_options_intent" id="shell_start_options_intent">#</a></span></h3>
 <p>启动 intent 指定的 Activity(应用程序活动)。<br>请参阅 <a href="#shell_intent">intent 参数的规范</a>。    </p>
 <p>选项包括：</p>

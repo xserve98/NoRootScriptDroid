@@ -1,5 +1,6 @@
 package com.stardust.pio;
 
+import android.app.NativeActivity;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.os.Environment;
@@ -10,10 +11,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.util.Locale;
 
@@ -28,7 +31,7 @@ public class PFiles {
     static final int DEFAULT_BUFFER_SIZE = 8192;
     static final String DEFAULT_ENCODING = Charset.defaultCharset().name();
 
-    public static Object open(String path, String mode, String encoding, int bufferSize) {
+    public static PFileInterface open(String path, String mode, String encoding, int bufferSize) {
         switch (mode) {
             case "r":
                 return new PReadableTextFile(path, encoding, bufferSize);
@@ -71,6 +74,10 @@ public class PFiles {
             }
         }
         return false;
+    }
+
+    public static boolean createWithDirs(String path) {
+        return createIfNotExists(path);
     }
 
     public static boolean exists(String path) {
@@ -125,6 +132,16 @@ public class PFiles {
 
     public static String read(InputStream inputStream) {
         return read(inputStream, "utf-8");
+    }
+
+    public static byte[] readBytes(InputStream is) {
+        try {
+            byte[] bytes = new byte[is.available()];
+            is.read(bytes);
+            return bytes;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public static boolean copyRaw(Context context, int rawId, String path) {
@@ -192,7 +209,53 @@ public class PFiles {
     public static void write(OutputStream outputStream, String text, String encoding) {
         try {
             outputStream.write(text.getBytes(encoding));
+            outputStream.close();
         } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static void append(String path, String text) {
+        create(path);
+        try {
+            write(new FileOutputStream(path, true), text);
+        } catch (FileNotFoundException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+
+    public static void append(String path, String text, String encoding) {
+        create(path);
+        try {
+            write(new FileOutputStream(path, true), text, encoding);
+        } catch (FileNotFoundException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static void writeBytes(OutputStream outputStream, byte[] bytes) {
+        try {
+            outputStream.write(bytes);
+            outputStream.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static void appendBytes(String path, byte[] bytes) {
+        create(path);
+        try {
+            writeBytes(new FileOutputStream(path, true), bytes);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static void writeBytes(String path, byte[] bytes) {
+        try {
+            writeBytes(new FileOutputStream(path), bytes);
+        } catch (FileNotFoundException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -213,6 +276,34 @@ public class PFiles {
             e.printStackTrace();
             return false;
         }
+    }
+
+
+    public static boolean copyAssetDir(Context context, String assetsDir, String toDir) {
+        new File(toDir).mkdirs();
+        AssetManager manager = context.getAssets();
+        try {
+            String[] list = manager.list(assetsDir);
+            if (list == null)
+                return false;
+            for (String file : list) {
+                InputStream stream;
+                try {
+                    stream = manager.open(join(assetsDir, file));
+                } catch (IOException e) {
+                    if (!copyAssetDir(context, join(assetsDir, file), join(toDir, file))) {
+                        return false;
+                    }
+                    continue;
+                }
+                copyStream(stream, join(toDir, file));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+
     }
 
     public static String renameWithoutExtensionAndReturnNewPath(String path, String newName) {
@@ -258,6 +349,7 @@ public class PFiles {
     }
 
     public static String getName(String filePath) {
+        filePath = filePath.replace('\\', '/');
         return new File(filePath).getName();
     }
 
@@ -288,9 +380,12 @@ public class PFiles {
     public static boolean deleteRecursively(File file) {
         if (file.isFile())
             return file.delete();
-        for (File child : file.listFiles()) {
-            if (!deleteRecursively(child))
-                return false;
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                if (!deleteRecursively(child))
+                    return false;
+            }
         }
         return file.delete();
     }
@@ -317,17 +412,23 @@ public class PFiles {
 
     public static String[] listDir(String path) {
         File file = new File(path);
-        return file.list();
+        return wrapNonNull(file.list());
+    }
+
+    private static String[] wrapNonNull(String[] list) {
+        if (list == null)
+            return new String[0];
+        return list;
     }
 
     public static String[] listDir(String path, final Func1<String, Boolean> filter) {
         final File file = new File(path);
-        return file.list(new FilenameFilter() {
+        return wrapNonNull(file.list(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 return filter.call(name);
             }
-        });
+        }));
     }
 
     public static boolean isFile(String path) {
@@ -343,8 +444,12 @@ public class PFiles {
         return file.isDirectory() && file.list().length == 0;
     }
 
-    public static String join(String parent, String child) {
-        return new File(parent, child).getPath();
+    public static String join(String base, String... paths) {
+        File file = new File(base);
+        for (String path : paths) {
+            file = new File(file, path);
+        }
+        return file.getPath();
     }
 
     public static String getHumanReadableSize(long bytes) {
@@ -353,5 +458,20 @@ public class PFiles {
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         String pre = "KMGTPE".substring(exp - 1, exp);
         return String.format(Locale.getDefault(), "%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
+
+    public static String getSimplifiedPath(String path) {
+        if (path.startsWith(Environment.getExternalStorageDirectory().getPath())) {
+            return path.substring(Environment.getExternalStorageDirectory().getPath().length());
+        }
+        return path;
+    }
+
+    public static byte[] readBytes(String path) {
+        try {
+            return readBytes(new FileInputStream(path));
+        } catch (FileNotFoundException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

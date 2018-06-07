@@ -8,20 +8,25 @@ import com.stardust.automator.UiObject;
 
 public class StringEqualsFilter extends DfsFilter {
 
-    private String mText;
+    private String mValue;
     private KeyGetter mKeyGetter;
 
-    public StringEqualsFilter(String text, KeyGetter getter) {
-        mText = text;
+    public StringEqualsFilter(String value, KeyGetter getter) {
+        mValue = value;
         mKeyGetter = getter;
     }
 
     @Override
     protected boolean isIncluded(UiObject nodeInfo) {
         String key = mKeyGetter.getKey(nodeInfo);
-        if(key != null){
-            return key.equals(mText);
+        if (key != null) {
+            return key.equals(mValue);
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return mKeyGetter.toString() + "(\"" + mValue + "\")";
     }
 }

@@ -6,6 +6,7 @@ import android.util.SparseArray;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Stardust on 2017/7/11.
@@ -13,50 +14,73 @@ import java.util.Map;
 
 public class IntentExtras implements Serializable {
 
-    private static int mMaxId = -1;
-    private static final String EXTRA_ID = "com.stardust.util.IntentExtras.id";
+    public static final String EXTRA_ID = "com.stardust.util.IntentExtras.id";
+
+    private static AtomicInteger mMaxId = new AtomicInteger(-1);
     private static SparseArray<Map<String, Object>> extraStore = new SparseArray<>();
-
-
-    public static IntentExtras newExtras() {
-        return new IntentExtras();
-    }
-
-    public static IntentExtras fromIntent(Intent intent) {
-        int id = intent.getIntExtra(EXTRA_ID, -1);
-        if (id < 0) {
-            throw new IllegalArgumentException("");
-        }
-        return new IntentExtras(id);
-    }
 
     private Map<String, Object> mMap;
     private int mId;
 
     private IntentExtras() {
         mMap = new HashMap<>();
-        mMaxId++;
-        mId = mMaxId;
+        mId = mMaxId.incrementAndGet();
         extraStore.put(mId, mMap);
     }
 
 
-    private IntentExtras(int id) {
-        mMap = extraStore.get(id);
-        mMaxId = id;
+    private IntentExtras(int id, Map<String, Object> map) {
+        mId = id;
+        mMap = map;
     }
 
+
+    public static IntentExtras newExtras() {
+        return new IntentExtras();
+    }
+
+    public static IntentExtras fromIntentAndRelease(Intent intent) {
+        int id = intent.getIntExtra(EXTRA_ID, -1);
+        if (id < 0) {
+            return null;
+        }
+        return fromIdAndRelease(id);
+    }
+
+    public static IntentExtras fromIdAndRelease(int id) {
+        Map<String, Object> map = extraStore.get(id);
+        if (map == null) {
+            return null;
+        }
+        extraStore.remove(id);
+        return new IntentExtras(id, map);
+    }
+
+    public static IntentExtras fromId(int id) {
+        Map<String, Object> map = extraStore.get(id);
+        if (map == null) {
+            return null;
+        }
+        return new IntentExtras(id, map);
+    }
+
+
+    public static IntentExtras fromIntent(Intent intent) {
+        int id = intent.getIntExtra(EXTRA_ID, -1);
+        if (id < 0) {
+            return null;
+        }
+        return fromId(id);
+    }
+
+
+    public int getId() {
+        return mId;
+    }
 
     @SuppressWarnings("unchecked")
     public <T> T get(String key) {
         return (T) mMap.get(key);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getAndClear(String key) {
-        T value = (T) mMap.get(key);
-        clear();
-        return value;
     }
 
     public IntentExtras put(String key, Object value) {
@@ -64,13 +88,20 @@ public class IntentExtras implements Serializable {
         return this;
     }
 
+    public IntentExtras putAll(IntentExtras extras) {
+        mMap.putAll(extras.mMap);
+        return this;
+    }
+
     public Intent putInIntent(Intent intent) {
-        intent.putExtra(EXTRA_ID, mMaxId);
+        intent.putExtra(EXTRA_ID, mId);
         return intent;
     }
 
-    public void clear() {
+    public void release() {
         extraStore.remove(mId);
-        mMap = null;
+        mId = -1;
     }
+
+
 }

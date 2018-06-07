@@ -1,35 +1,47 @@
 package com.stardust.autojs.runtime;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
 import android.os.Looper;
 
+import com.stardust.app.GlobalAppContext;
 import com.stardust.autojs.R;
 import com.stardust.autojs.ScriptEngineService;
 import com.stardust.autojs.annotation.ScriptVariable;
 import com.stardust.autojs.core.accessibility.AccessibilityBridge;
-import com.stardust.autojs.engine.ScriptEngine;
+import com.stardust.autojs.core.image.Colors;
+import com.stardust.autojs.core.permission.PermissionRequestProxyActivity;
+import com.stardust.autojs.core.permission.Permissions;
 import com.stardust.autojs.rhino.AndroidClassLoader;
 import com.stardust.autojs.runtime.api.AbstractShell;
 import com.stardust.autojs.runtime.api.AppUtils;
 import com.stardust.autojs.runtime.api.Console;
+import com.stardust.autojs.runtime.api.Device;
 import com.stardust.autojs.runtime.api.Engines;
 import com.stardust.autojs.runtime.api.Events;
-import com.stardust.autojs.runtime.api.Loopers;
+import com.stardust.autojs.runtime.api.Files;
+import com.stardust.autojs.runtime.api.Floaty;
+import com.stardust.autojs.core.looper.Loopers;
+import com.stardust.autojs.runtime.api.Media;
+import com.stardust.autojs.runtime.api.Sensors;
+import com.stardust.autojs.runtime.api.Threads;
 import com.stardust.autojs.runtime.api.Timers;
-import com.stardust.autojs.runtime.api.UiSelector;
-import com.stardust.autojs.runtime.api.image.Images;
-import com.stardust.autojs.runtime.api.image.ScreenCaptureRequester;
-import com.stardust.autojs.runtime.api.ui.Dialogs;
+import com.stardust.autojs.core.accessibility.UiSelector;
+import com.stardust.autojs.runtime.api.Images;
+import com.stardust.autojs.core.image.capture.ScreenCaptureRequester;
+import com.stardust.autojs.runtime.api.Dialogs;
 import com.stardust.autojs.runtime.exception.ScriptEnvironmentException;
 import com.stardust.autojs.runtime.exception.ScriptException;
 import com.stardust.autojs.runtime.exception.ScriptInterruptedException;
 import com.stardust.autojs.core.accessibility.SimpleActionAutomator;
-import com.stardust.concurrent.VolatileBox;
-import com.stardust.autojs.runtime.api.ui.UI;
+import com.stardust.autojs.runtime.api.UI;
+import com.stardust.concurrent.VolatileDispose;
+import com.stardust.lang.ThreadCompat;
 import com.stardust.pio.UncheckedIOException;
 import com.stardust.util.ClipboardUtil;
-import com.stardust.autojs.runtime.api.ProcessShell;
+import com.stardust.autojs.core.util.ProcessShell;
 import com.stardust.util.ScreenMetrics;
 import com.stardust.util.SdkVersionUtil;
 import com.stardust.util.Supplier;
@@ -41,8 +53,12 @@ import org.mozilla.javascript.ContextFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 
 /**
@@ -141,45 +157,76 @@ public class ScriptRuntime {
     public Timers timers;
 
     @ScriptVariable
+    public Device device;
+
+    @ScriptVariable
     public final AccessibilityBridge accessibilityBridge;
 
     @ScriptVariable
     public final Engines engines;
 
+    @ScriptVariable
+    public Threads threads;
+
+    @ScriptVariable
+    public final Floaty floaty;
+
+    @ScriptVariable
+    public UiHandler uiHandler;
+
+    @ScriptVariable
+    public final Colors colors = new Colors();
+
+    @ScriptVariable
+    public final Files files;
+
+    @ScriptVariable
+    public Sensors sensors;
+
+    @ScriptVariable
+    public final Media media;
+
     private Images images;
 
     private static WeakReference<Context> applicationContext;
     private Map<String, Object> mProperties = new ConcurrentHashMap<>();
-    private UiHandler mUiHandler;
     private AbstractShell mRootShell;
     private Supplier<AbstractShell> mShellSupplier;
     private ScreenMetrics mScreenMetrics = new ScreenMetrics();
+    private Thread mThread;
 
 
     protected ScriptRuntime(Builder builder) {
+        uiHandler = builder.mUiHandler;
+        Context context = uiHandler.getContext();
         app = builder.mAppUtils;
-        mUiHandler = builder.mUiHandler;
         console = builder.mConsole;
         accessibilityBridge = builder.mAccessibilityBridge;
         mShellSupplier = builder.mShellSupplier;
-        ui = new UI(mUiHandler.getContext());
+        ui = new UI(context, this);
         this.automator = new SimpleActionAutomator(accessibilityBridge, this);
         automator.setScreenMetrics(mScreenMetrics);
         this.info = accessibilityBridge.getInfoProvider();
-        Context context = mUiHandler.getContext();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             images = new Images(context, this, builder.mScreenCaptureRequester);
         }
-        engines = new Engines(builder.mEngineService);
-        dialogs = new Dialogs(app, mUiHandler);
+        engines = new Engines(builder.mEngineService, this);
+        dialogs = new Dialogs(this);
+        device = new Device(context);
+        floaty = new Floaty(uiHandler, ui, this);
+        files = new Files(this);
+        media = new Media(context, this);
     }
 
     public void init() {
         if (loopers != null)
             throw new IllegalStateException("already initialized");
-        timers = new Timers(bridges);
-        loopers = new Loopers(timers);
-        events = new Events(mUiHandler.getContext(), accessibilityBridge, bridges, loopers);
+        threads = new Threads(this);
+        timers = new Timers(bridges, threads);
+        loopers = new Loopers(this);
+        events = new Events(uiHandler.getContext(), accessibilityBridge, this);
+        mThread = Thread.currentThread();
+        sensors = new Sensors(uiHandler.getContext(), this);
     }
 
     public static void setApplicationContext(Context context) {
@@ -194,7 +241,7 @@ public class ScriptRuntime {
     }
 
     public UiHandler getUiHandler() {
-        return mUiHandler;
+        return uiHandler;
     }
 
     public AccessibilityBridge getAccessibilityBridge() {
@@ -202,7 +249,7 @@ public class ScriptRuntime {
     }
 
     public void toast(final String text) {
-        mUiHandler.toast(text);
+        uiHandler.toast(text);
     }
 
     public void sleep(long millis) {
@@ -214,36 +261,24 @@ public class ScriptRuntime {
     }
 
     public void setClip(final String text) {
-        final Object lock = new Object();
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                ClipboardUtil.setClip(mUiHandler.getContext(), text);
-                synchronized (lock) {
-                    lock.notify();
-                }
-            }
-        });
-        synchronized (lock) {
-            try {
-                lock.wait();
-            } catch (InterruptedException e) {
-                throw new ScriptInterruptedException();
-            }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            ClipboardUtil.setClip(uiHandler.getContext(), text);
+            return;
         }
+        VolatileDispose<Object> dispose = new VolatileDispose<>();
+        uiHandler.post(() -> {
+            ClipboardUtil.setClip(uiHandler.getContext(), text);
+            dispose.setAndNotify(text);
+        });
+        dispose.blockedGet();
     }
 
     public String getClip() {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            return ClipboardUtil.getClipOrEmpty(mUiHandler.getContext()).toString();
+            return ClipboardUtil.getClipOrEmpty(uiHandler.getContext()).toString();
         }
-        final VolatileBox<String> clip = new VolatileBox<>("");
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                clip.setAndNotify(ClipboardUtil.getClipOrEmpty(mUiHandler.getContext()).toString());
-            }
-        });
+        final VolatileDispose<String> clip = new VolatileDispose<>();
+        uiHandler.post(() -> clip.setAndNotify(ClipboardUtil.getClipOrEmpty(uiHandler.getContext()).toString()));
         return clip.blockedGetOrThrow(ScriptInterruptedException.class);
     }
 
@@ -264,7 +299,7 @@ public class ScriptRuntime {
         return ProcessShell.execCommand(cmd, root != 0);
     }
 
-    public UiSelector selector(ScriptEngine engine) {
+    public UiSelector selector() {
         return new UiSelector(accessibilityBridge);
     }
 
@@ -272,10 +307,21 @@ public class ScriptRuntime {
         return Thread.currentThread().isInterrupted();
     }
 
-    public void requiresApi(int i) {
+    public static void requiresApi(int i) {
         if (Build.VERSION.SDK_INT < i) {
-            throw new ScriptException(mUiHandler.getContext().getString(R.string.text_requires_sdk_version_to_run_the_script) + SdkVersionUtil.sdkIntToString(i));
+            throw new ScriptException(GlobalAppContext.getString(R.string.text_requires_sdk_version_to_run_the_script) + SdkVersionUtil.sdkIntToString(i));
         }
+    }
+
+    public void requestPermissions(String[] permissions) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+        Context context = uiHandler.getContext();
+        permissions = Permissions.getPermissionsNeedToRequest(context, permissions);
+        if (permissions.length == 0)
+            return;
+        Permissions.requestPermissions(context, permissions);
     }
 
     public void loadJar(String path) {
@@ -287,8 +333,17 @@ public class ScriptRuntime {
     }
 
     public void exit() {
-        Thread.currentThread().interrupt();
-        throw new ScriptInterruptedException();
+        mThread.interrupt();
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            throw new ScriptInterruptedException();
+        }
+    }
+
+    public void exit(Exception e) {
+        engines.myEngine().uncaughtException(e);
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            throw new ScriptException(e);
+        }
     }
 
     @Deprecated
@@ -310,19 +365,36 @@ public class ScriptRuntime {
     }
 
     public void onExit() {
+        //清除interrupt状态
+        ThreadCompat.interrupted();
+        //悬浮窗需要第一时间关闭以免出现恶意脚本全屏悬浮窗屏蔽屏幕并且在exit中写死循环的问题
+        ignoresException(floaty::closeAll);
+        try {
+            events.emit("exit");
+        } catch (Exception ignored) {
+            console.error("exception on exit: " + ignored);
+        }
+        ignoresException(threads::shutDownAll);
+        ignoresException(events::recycle);
+        ignoresException(media::recycle);
+        ignoresException(loopers::recycle);
+        ignoresException(() -> {
+            if (mRootShell != null) mRootShell.exitAndWaitFor();
+            mRootShell = null;
+            mShellSupplier = null;
+        });
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            images.releaseScreenCapturer();
+            ignoresException(images::releaseScreenCapturer);
         }
-        if (mRootShell != null) {
-            mRootShell.exitAndWaitFor();
-        }
-        mRootShell = null;
-        mShellSupplier = null;
-        if (events != null) {
-            events.recycle();
-        }
-        if (loopers != null) {
-            loopers.quitAll();
+        ignoresException(sensors::unregisterAll);
+        ignoresException(timers::recycle);
+    }
+
+    private void ignoresException(Runnable r) {
+        try {
+            r.run();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

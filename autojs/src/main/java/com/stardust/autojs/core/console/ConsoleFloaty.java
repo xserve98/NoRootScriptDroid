@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.support.annotation.Nullable;
 import android.view.ContextThemeWrapper;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import com.stardust.enhancedfloaty.FloatyService;
@@ -25,6 +27,7 @@ public class ConsoleFloaty extends ResizableExpandableFloaty.AbstractResizableEx
     private TextView mTitleView;
     private StardustConsole mConsole;
     private CharSequence mTitle;
+    private View mExpandedView;
 
     public ConsoleFloaty(StardustConsole console) {
         mConsole = console;
@@ -32,6 +35,16 @@ public class ConsoleFloaty extends ResizableExpandableFloaty.AbstractResizableEx
         setInitialX(100);
         setInitialY(1000);
         setCollapsedViewUnpressedAlpha(1.0f);
+    }
+
+    @Override
+    public int getInitialWidth() {
+        return WindowManager.LayoutParams.WRAP_CONTENT; //ScreenMetrics.getDeviceScreenWidth() * 2 / 3;
+    }
+
+    @Override
+    public int getInitialHeight() {
+        return WindowManager.LayoutParams.WRAP_CONTENT;//ScreenMetrics.getDeviceScreenHeight() / 3;
     }
 
     @Override
@@ -53,16 +66,17 @@ public class ConsoleFloaty extends ResizableExpandableFloaty.AbstractResizableEx
         setListeners(view, window);
         setUpConsole(view, window);
         setInitialMeasure(view);
+        mExpandedView = view;
         return view;
     }
 
+    public View getExpandedView() {
+        return mExpandedView;
+    }
+
     private void setInitialMeasure(final View view) {
-        view.post(new Runnable() {
-            @Override
-            public void run() {
-                ViewUtil.setViewMeasure(view, ScreenMetrics.getDeviceScreenWidth() * 2 / 3, ScreenMetrics.getDeviceScreenHeight() / 3);
-            }
-        });
+        view.post(() -> ViewUtil.setViewMeasure(view, ScreenMetrics.getDeviceScreenWidth() * 2 / 3,
+                ScreenMetrics.getDeviceScreenHeight() / 3));
     }
 
     private void initConsoleTitle(View view) {
@@ -84,30 +98,17 @@ public class ConsoleFloaty extends ResizableExpandableFloaty.AbstractResizableEx
     }
 
     private void setWindowOperationIconListeners(View view, final ResizableExpandableFloatyWindow window) {
-        view.findViewById(R.id.close).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                window.close();
+        view.findViewById(R.id.close).setOnClickListener(v -> window.close());
+        view.findViewById(R.id.move_or_resize).setOnClickListener(v -> {
+            if (mMoveCursor.getVisibility() == View.VISIBLE) {
+                mMoveCursor.setVisibility(View.GONE);
+                mResizer.setVisibility(View.GONE);
+            } else {
+                mMoveCursor.setVisibility(View.VISIBLE);
+                mResizer.setVisibility(View.VISIBLE);
             }
         });
-        view.findViewById(R.id.move_or_resize).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mMoveCursor.getVisibility() == View.VISIBLE) {
-                    mMoveCursor.setVisibility(View.GONE);
-                    mResizer.setVisibility(View.GONE);
-                } else {
-                    mMoveCursor.setVisibility(View.VISIBLE);
-                    mResizer.setVisibility(View.VISIBLE);
-                }
-            }
-        });
-        view.findViewById(R.id.minimize).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                window.collapse();
-            }
-        });
+        view.findViewById(R.id.minimize).setOnClickListener(v -> window.collapse());
     }
 
     @Nullable
@@ -127,12 +128,7 @@ public class ConsoleFloaty extends ResizableExpandableFloaty.AbstractResizableEx
     public void setTitle(final CharSequence title) {
         mTitle = title;
         if (mTitleView != null) {
-            mTitleView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mTitleView.setText(title);
-                }
-            });
+            mTitleView.post(() -> mTitleView.setText(title));
         }
     }
 }
